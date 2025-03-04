@@ -18,6 +18,7 @@
 #include "parser/parsetree.h"
 #include "storage/lock.h"
 #include "utils/builtins.h"
+#include "utils/guc.h"
 #include "utils/lsyscache.h"
 
 PG_MODULE_MAGIC;
@@ -36,6 +37,7 @@ static void explaintips_per_node_hook(PlanState *planstate, List *ancestors,
 
 static int	es_extension_id;
 static explain_per_node_hook_type prev_explain_per_node_hook;
+static int	filtered_rows_ratio = 300;
 
 /*
  * Initialization we do when this module is loaded.
@@ -52,6 +54,19 @@ _PG_init(void)
 	/* Use the per-node hook to make our options do something. */
 	prev_explain_per_node_hook = explain_per_node_hook;
 	explain_per_node_hook = explaintips_per_node_hook;
+
+	DefineCustomIntVariable( "pg_explaintips.filtered_rows_ratio",
+				"Ratio of filtered rows to add a tip for an index scan.",
+				NULL,
+				&filtered_rows_ratio,
+				70, /* 70% by default */
+				0,
+				100,
+				PGC_USERSET,
+				0,
+				NULL,
+				NULL,
+				NULL);
 }
 
 /*
@@ -108,7 +123,20 @@ explaintips_per_node_hook(PlanState *planstate, List *ancestors,
 	 */
 	if (options->tips)
 	{
-		/* everything should be here */
+		/*
+		 * Tips for sequential scan with lots of filtered rows
+		 */
+		if (nodeTag(plan) == T_SeqScan)
+		{
+			double  rows = planstate->instrument->ntuples;
+			double  nfiltered = planstate->instrument->nfiltered1;
+			if (100*nfiltered/(nfiltered+rows) > filtered_rows_ratio)
+			{
+				initStringInfo(&flags);
+				appendStringInfo(&flags, "You should probably add an index!");
+				ExplainPropertyText("Tips", flags.data, es);
+			}
+		}
 	}
 }
 
