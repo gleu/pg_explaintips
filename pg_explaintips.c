@@ -137,6 +137,25 @@ explaintips_per_node_hook(PlanState *planstate, List *ancestors,
 				ExplainPropertyText("Tips", flags.data, es);
 			}
 		}
+
+		/*
+		 * Tips for disk sort
+		 */
+		if (nodeTag(plan) == T_Sort)
+		{
+			SortState *sortstate = castNode(SortState, planstate);
+			Tuplesortstate *state = (Tuplesortstate *) sortstate->tuplesortstate;
+			TuplesortInstrumentation stats;
+			tuplesort_get_stats(state, &stats);
+			if (stats.sortMethod == SORT_TYPE_EXTERNAL_SORT
+				||
+				stats.sortMethod == SORT_TYPE_EXTERNAL_MERGE)
+			{
+				initStringInfo(&flags);
+				appendStringInfo(&flags, "You should probably increase work_mem!");
+				ExplainPropertyText("Tips", flags.data, es);
+			}
+		}
 	}
 }
 
