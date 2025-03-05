@@ -121,7 +121,7 @@ explaintips_per_node_hook(PlanState *planstate, List *ancestors,
 	/*
 	 * If the "tips" option was given, display tips.
 	 */
-	if (options->tips)
+	if (options->tips && es->analyze)
 	{
 		/*
 		 * Tips for sequential scan with lots of filtered rows
