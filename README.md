@@ -2,10 +2,7 @@
 
 ## Requirements
 
-The latest v18 pre-release of PostgreSQL + Robert Haas' patches from this
-thread:
-
-https://www.postgresql.org/message-id/CA%2BTgmoYSzg58hPuBmei46o8D3SKX%2BSZoO4K_aGQGwiRzvRApLg%40mail.gmail.com
+The latest v18 pre-release of PostgreSQL (at the very least 4fd02bf7).
 
 ## Compilation
 
