@@ -38,6 +38,7 @@ static void explaintips_per_node_hook(PlanState *planstate, List *ancestors,
 static int	es_extension_id;
 static explain_per_node_hook_type prev_explain_per_node_hook;
 static int	filtered_rows_ratio = 300;
+static double	heap_fetches_limit = 1000;
 
 /*
  * Initialization we do when this module is loaded.
@@ -62,6 +63,19 @@ _PG_init(void)
 				70, /* 70% by default */
 				0,
 				100,
+				PGC_USERSET,
+				0,
+				NULL,
+				NULL,
+				NULL);
+
+	DefineCustomRealVariable( "pg_explaintips.heap_fetches_limit",
+				"Maximum number of heap fetches before showing a tip for an index only scan.",
+				NULL,
+				&heap_fetches_limit,
+				1000,
+				0,
+				10000000,
 				PGC_USERSET,
 				0,
 				NULL,
@@ -134,6 +148,20 @@ explaintips_per_node_hook(PlanState *planstate, List *ancestors,
 			{
 				initStringInfo(&flags);
 				appendStringInfo(&flags, "You should probably add an index!");
+				ExplainPropertyText("Tips", flags.data, es);
+			}
+		}
+
+		/*
+		 * Tips for big heap fetches on Index Only Scan
+		 */
+		if (nodeTag(plan) == T_IndexOnlyScan)
+		{
+			double  heapfetches = planstate->instrument->ntuples2;
+			if (heapfetches > heap_fetches_limit)
+			{
+				initStringInfo(&flags);
+				appendStringInfo(&flags, "You should probably VACUUM this relation!");
 				ExplainPropertyText("Tips", flags.data, es);
 			}
 		}

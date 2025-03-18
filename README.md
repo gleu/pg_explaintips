@@ -59,6 +59,27 @@ Planning Time: 0.035 ms
 Execution Time: 0.127 ms
 ```
 
+### VACUUM needed because of big heap fetches
+
+With an index only scan, a big number of heap fetches means a VACUUM is needed.
+
+Here is an example:
+
+```sql
+EXPLAIN (ANALYZE,COSTS OFF,TIPS) SELECT * FROM t1 WHERE id<1000;
+```
+
+```
+Index Only Scan using t1_id_idx on t1 (actual time=0.021..0.077 rows=500.00 loops=1)
+  Index Cond: (id < 1000)
+  Heap Fetches: 179
+  Index Searches: 1
+  Buffers: shared hit=6
+  Tips: You should probably VACUUM this relation!
+Planning Time: 0.067 ms
+Execution Time: 0.102 ms
+```
+
 ### Not enough work_mem for sort
 
 Not tip for a sort in memory:
